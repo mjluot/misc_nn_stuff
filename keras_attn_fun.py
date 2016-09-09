@@ -18,7 +18,9 @@ class SuperSimpleAttnWithEncoding(Layer):
 
         self.output_dim = output_dim
         self.return_sequence = return_sequence
+        self.supports_masking = True
         super(SuperSimpleAttnWithEncoding, self).__init__(**kwargs)
+
 
     def build(self, input_shape):
         input_dim = input_shape[0][-1]
@@ -66,6 +68,11 @@ class SuperSimpleAttnWithEncoding(Layer):
         else:
             return self.x_input_shape[1]
 
+    def compute_mask(self, input, mask):
+        if self.return_sequences:
+            return mask
+        else:
+            return None
 
 
 class SuperSimpleAttn(Layer):
@@ -76,6 +83,7 @@ class SuperSimpleAttn(Layer):
         self.output_dim = output_dim
         self.return_sequence = return_sequence
         super(SuperSimpleAttn, self).__init__(**kwargs)
+        self.supports_masking = True
 
     def build(self, input_shape):
         input_dim = input_shape[-1]
@@ -110,6 +118,17 @@ class SuperSimpleAttn(Layer):
             return self.x_input_shape
         else:
             return (self.x_input_shape[0], self.x_input_shape[-1])
+
+    def get_config(self):
+        base_config = super(SuperSimpleAttn, self).get_config()
+        config = {'output_dim' : self.output_dim}
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def compute_mask(self, input, mask):
+        if self.return_sequences:
+            return mask
+        else:
+            return None
 
 
 def main():
@@ -175,6 +194,8 @@ def main():
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
 
     model.fit(x,y,nb_epoch=1)
+
+
 
     #Softmax output functions
     t_input = T.imatrix()
