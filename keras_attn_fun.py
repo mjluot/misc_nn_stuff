@@ -17,7 +17,7 @@ class SuperSimpleAttnWithEncoding(Layer):
     def __init__(self, output_dim, return_sequence=True, **kwargs):
 
         self.output_dim = output_dim
-        self.return_sequence = return_sequence
+        self.return_sequences = return_sequence
         self.supports_masking = True
         super(SuperSimpleAttnWithEncoding, self).__init__(**kwargs)
 
@@ -43,7 +43,7 @@ class SuperSimpleAttnWithEncoding(Layer):
         a =  T.nnet.softmax(T.dot(M, self.w_a))
         ar = T.extra_ops.repeat(a, full_input.shape[-1], axis=1).reshape(full_input.shape)
 
-        if self.return_sequence:
+        if self.return_sequences:
             return full_input * ar
         else:
             return T.sum(full_input * ar, axis=1)
@@ -81,7 +81,7 @@ class SuperSimpleAttn(Layer):
     def __init__(self, output_dim, return_sequence=True, **kwargs):
 
         self.output_dim = output_dim
-        self.return_sequence = return_sequence
+        self.return_sequences = return_sequence
         super(SuperSimpleAttn, self).__init__(**kwargs)
         self.supports_masking = True
 
@@ -99,7 +99,7 @@ class SuperSimpleAttn(Layer):
         a =  T.nnet.softmax(T.dot(M, self.w_a))
         ar = T.extra_ops.repeat(a, full_input.shape[-1], axis=1).reshape(full_input.shape)
 
-        if self.return_sequence:
+        if self.return_sequences:
             return full_input * ar
         else:
             return T.sum(full_input * ar, axis=1)
@@ -114,7 +114,7 @@ class SuperSimpleAttn(Layer):
 
     def get_output_shape_for(self, input_shape):
 
-        if self.return_sequence:
+        if self.return_sequences:
             return self.x_input_shape
         else:
             return (self.x_input_shape[0], self.x_input_shape[-1])
