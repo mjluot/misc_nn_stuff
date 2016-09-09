@@ -14,9 +14,8 @@ import theano
 class SuperSimpleAttnWithEncoding(Layer):
 
 
-    def __init__(self, output_dim, return_sequence=True, **kwargs):
+    def __init__(self, return_sequence=True, **kwargs):
 
-        self.output_dim = output_dim
         self.return_sequences = return_sequence
         self.supports_masking = True
         super(SuperSimpleAttnWithEncoding, self).__init__(**kwargs)
@@ -63,14 +62,14 @@ class SuperSimpleAttnWithEncoding(Layer):
 
     def get_output_shape_for(self, input_shape):
 
-        if self.return_sequence:
+        if self.return_sequences:
             return self.x_input_shape[0]
         else:
             return self.x_input_shape[1]
 
     def compute_mask(self, input, mask):
         if self.return_sequences:
-            return mask
+            return mask[0]
         else:
             return None
 
@@ -86,6 +85,7 @@ class SuperSimpleAttn(Layer):
         self.supports_masking = True
 
     def build(self, input_shape):
+        print input_shape
         input_dim = input_shape[-1]
         self.x_input_shape = input_shape
         self.W_y = K.variable(np.random.random((input_dim, input_dim)), name='W_y')
@@ -174,7 +174,7 @@ def main():
     char_emb = Embedding(4, vec_size, input_length=window, mask_zero=False)
     emb_out = char_emb(x_input)
 
-    simple_attn = SuperSimpleAttn(emb_out.shape)
+    simple_attn = SuperSimpleAttn()
 
     emb_attn = simple_attn(emb_out)
 
@@ -193,7 +193,7 @@ def main():
     model = Model(input=[x_input], output=d_out)
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
 
-    model.fit(x,y,nb_epoch=1)
+    #model.fit(x,y,nb_epoch=1)
 
 
 
@@ -209,7 +209,7 @@ def main():
         print 
         print
     '''
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
 
 ####Test with encoding vec
 
@@ -218,7 +218,10 @@ def main():
     char_emb = Embedding(4, vec_size, input_length=window, mask_zero=False)
     emb_out = char_emb(x_input)
 
-    simple_attn = SuperSimpleAttnWithEncoding(emb_out.shape)
+
+    simple_attn = SuperSimpleAttnWithEncoding()
+
+    #import pdb;pdb.set_trace()
 
     rnn = GRU(vec_size)
     encoding = rnn(emb_out)
