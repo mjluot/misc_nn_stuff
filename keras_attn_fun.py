@@ -200,7 +200,7 @@ def main():
     #Softmax output functions
     t_input = T.imatrix()
     testf = theano.function([t_input], simple_attn.call_softmax(char_emb.call(t_input)))
-
+    '''
     np.set_printoptions(precision=3)
     for example in dev_x[:100]:
         print 'Example', example
@@ -208,7 +208,7 @@ def main():
         print testf(np.array([example],dtype=np.int32))[0]
         print 
         print
-
+    '''
     import pdb;pdb.set_trace()
 
 ####Test with encoding vec
@@ -246,14 +246,16 @@ def main():
     t_input = T.imatrix()
     testf = theano.function([t_input], simple_attn.call_softmax([char_emb.call(t_input), rnn.call(char_emb.call(t_input))]))
 
+    '''
     np.set_printoptions(precision=3)
+    
     for example in dev_x[:100]:
         print 'Example', example
         print 'Attention'
         print testf(np.array([example],dtype=np.int32))[0]
         print 
         print
+    '''
 
 
-
-main()
+#main()
