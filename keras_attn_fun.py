@@ -25,9 +25,9 @@ class SuperSimpleAttnWithEncoding(Layer):
     def build(self, input_shape):
         input_dim = input_shape[0][-1]
         self.x_input_shape = input_shape
-        self.W_h = K.variable(np.random.random((input_dim, input_dim)))
-        self.W_y = K.variable(np.random.random((input_dim, input_dim)))
-        self.w_a = K.variable(np.random.random((input_dim,)))
+        self.W_h = K.variable(np.random.random((input_dim, input_dim)), name='W_h')
+        self.W_y = K.variable(np.random.random((input_dim, input_dim)), name='W_y')
+        self.w_a = K.variable(np.random.random((input_dim,)), name='w_a')
 
         self.trainable_weights = [self.W_y, self.w_a, self.W_h]
 
@@ -88,8 +88,8 @@ class SuperSimpleAttn(Layer):
     def build(self, input_shape):
         input_dim = input_shape[-1]
         self.x_input_shape = input_shape
-        self.W_y = K.variable(np.random.random((input_dim, input_dim)))
-        self.w_a = K.variable(np.random.random((input_dim,)))
+        self.W_y = K.variable(np.random.random((input_dim, input_dim)), name='W_y')
+        self.w_a = K.variable(np.random.random((input_dim,)), name='w_a')
         self.trainable_weights = [self.W_y, self.w_a]
 
     def call(self, x, mask=None):
