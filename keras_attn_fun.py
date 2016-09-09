@@ -78,9 +78,9 @@ class SuperSimpleAttnWithEncoding(Layer):
 class SuperSimpleAttn(Layer):
 
 
-    def __init__(self, output_dim, return_sequence=True, **kwargs):
+    def __init__(self, return_sequence=True, **kwargs):
 
-        self.output_dim = output_dim
+        #self.output_dim = output_dim
         self.return_sequences = return_sequence
         super(SuperSimpleAttn, self).__init__(**kwargs)
         self.supports_masking = True
@@ -121,8 +121,8 @@ class SuperSimpleAttn(Layer):
 
     def get_config(self):
         base_config = super(SuperSimpleAttn, self).get_config()
-        config = {'output_dim' : self.output_dim}
-        return dict(list(base_config.items()) + list(config.items()))
+        #config = {'output_dim' : self.output_dim}
+        return base_config
 
     def compute_mask(self, input, mask):
         if self.return_sequences:
