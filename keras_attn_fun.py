@@ -64,7 +64,7 @@ class SuperSimpleAttnWithEncoding(Layer):
         if self.return_sequence:
             return self.x_input_shape[0]
         else:
-            return self.x_input_shape[1]#(self.x_input_shape[0], self.x_input_shape[-1])
+            return self.x_input_shape[1]
 
 
 
@@ -118,7 +118,6 @@ def main():
     vec_size = 20
     vec_len = 20
 
-    #Make the fucking data
     x = []
     y = []
     for ax in range(90000):
@@ -141,8 +140,6 @@ def main():
 
     x = x[:8000]
     y = y[:8000]
-
-    #And now for the little goddamn network
 
     from keras.layers import Dense, Dropout, Activation, Merge, Input, merge
     from keras.layers.embeddings import Embedding
