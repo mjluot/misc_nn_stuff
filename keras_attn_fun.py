@@ -73,6 +73,11 @@ class SuperSimpleAttnWithEncoding(Layer):
         else:
             return None
 
+    def get_config(self):
+        base_config = super(SuperSimpleAttnWithEncoding, self).get_config()
+        #config = {'output_dim' : self.output_dim}
+        return base_config
+
 
 class SuperSimpleAttn(Layer):
 
