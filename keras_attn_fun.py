@@ -1,5 +1,4 @@
-
-
+from __future__ import print_function
 import numpy
 import numpy as np
 import random
@@ -10,16 +9,13 @@ from keras.engine.topology import Layer
 import theano.tensor as T
 import theano
 
+class Attention(Layer):
 
-class SuperSimpleAttnWithEncoding(Layer):
-
-
-    def __init__(self, return_sequence=True, **kwargs):
+    def __init__(self, return_sequence=False, **kwargs):
 
         self.return_sequences = return_sequence
         self.supports_masking = True
-        super(SuperSimpleAttnWithEncoding, self).__init__(**kwargs)
-
+        super(Attention, self).__init__(**kwargs)
 
     def build(self, input_shape):
         input_dim = input_shape[0][-1]
@@ -39,9 +35,18 @@ class SuperSimpleAttnWithEncoding(Layer):
         whhn_r = T.extra_ops.repeat(whhn, full_input.shape[1], axis=0).reshape(full_input.shape)
 
         M = T.tanh(T.dot(full_input, self.W_y) + whhn_r)
-        a =  T.nnet.softmax(T.dot(M, self.w_a))
-        ar = T.extra_ops.repeat(a, full_input.shape[-1], axis=1).reshape(full_input.shape)
+        a_dot = T.dot(M, self.w_a)
+        mask = mask[0]
 
+        if mask is None:
+            a = T.nnet.softmax(a_dot)
+        else:
+            #This is softmax with a mask, maybe usable somewhere else as well?
+            softmax_sum_with_mask = T.sum(T.exp(a_dot) * mask, axis=1)
+            repeated_sum = T.extra_ops.repeat(softmax_sum_with_mask, a_dot.shape[1]).reshape(a_dot.shape)
+            a = ((T.exp(a_dot)/repeated_sum)) * mask
+
+        ar = T.extra_ops.repeat(a, full_input.shape[-1], axis=1).reshape(full_input.shape)
         if self.return_sequences:
             return full_input * ar
         else:
@@ -56,7 +61,16 @@ class SuperSimpleAttnWithEncoding(Layer):
         whhn_r = T.extra_ops.repeat(whhn, full_input.shape[1], axis=0).reshape(full_input.shape)
 
         M = T.tanh(T.dot(full_input, self.W_y) + whhn_r)
-        a =  T.nnet.softmax(T.dot(M, self.w_a))
+        a_dot = T.dot(M, self.w_a)
+        mask = mask[0]
+
+        if mask is None:
+            a = T.nnet.softmax(a_dot)
+        else:
+            #This is softmax with a mask, maybe usable somewhere else as well?
+            softmax_sum_with_mask = T.sum(T.exp(a_dot) * mask, axis=1)
+            repeated_sum = T.extra_ops.repeat(softmax_sum_with_mask, a_dot.shape[1]).reshape(a_dot.shape)
+            a = ((T.exp(a_dot)/repeated_sum)) * mask
 
         return a
 
@@ -74,67 +88,9 @@ class SuperSimpleAttnWithEncoding(Layer):
             return None
 
     def get_config(self):
-        base_config = super(SuperSimpleAttnWithEncoding, self).get_config()
+        base_config = super(Attention, self).get_config()
         #config = {'output_dim' : self.output_dim}
         return base_config
-
-
-class SuperSimpleAttn(Layer):
-
-
-    def __init__(self, return_sequence=True, **kwargs):
-
-        #self.output_dim = output_dim
-        self.return_sequences = return_sequence
-        super(SuperSimpleAttn, self).__init__(**kwargs)
-        self.supports_masking = True
-
-    def build(self, input_shape):
-        print input_shape
-        input_dim = input_shape[-1]
-        self.x_input_shape = input_shape
-        self.W_y = K.variable(np.random.random((input_dim, input_dim)), name='W_y')
-        self.w_a = K.variable(np.random.random((input_dim,)), name='w_a')
-        self.trainable_weights = [self.W_y, self.w_a]
-
-    def call(self, x, mask=None):
-
-        full_input = x
-        M = T.tanh(T.dot(full_input, self.W_y))
-        a =  T.nnet.softmax(T.dot(M, self.w_a))
-        ar = T.extra_ops.repeat(a, full_input.shape[-1], axis=1).reshape(full_input.shape)
-
-        if self.return_sequences:
-            return full_input * ar
-        else:
-            return T.sum(full_input * ar, axis=1)
-
-    def call_softmax(self, x, mask=None):
-
-        full_input = x
-        M = T.tanh(T.dot(full_input, self.W_y))
-        a =  T.nnet.softmax(T.dot(M, self.w_a))
-
-        return a
-
-    def get_output_shape_for(self, input_shape):
-
-        if self.return_sequences:
-            return self.x_input_shape
-        else:
-            return (self.x_input_shape[0], self.x_input_shape[-1])
-
-    def get_config(self):
-        base_config = super(SuperSimpleAttn, self).get_config()
-        #config = {'output_dim' : self.output_dim}
-        return base_config
-
-    def compute_mask(self, input, mask):
-        if self.return_sequences:
-            return mask
-        else:
-            return None
-
 
 def main():
 
@@ -146,13 +102,14 @@ def main():
     y = []
     for ax in range(90000):
         #
-        cx = numpy.ones(window)
+        len_r = random.randint(2, window - 1)
+        cx = numpy.concatenate([numpy.ones(len_r), numpy.zeros(window-len_r)])
         #label
         label = random.randint(0,1)
         if label > 0:
-            cx[random.randint(0,window - 1)] = 2
+            cx[random.randint(0,len_r - 1)] = 2
         else:
-            cx[random.randint(0,window - 1)] = 3          
+            cx[random.randint(0,len_r - 1)] = 3          
         x.append(cx)
         y.append(label)
 
@@ -169,101 +126,54 @@ def main():
     from keras.layers.embeddings import Embedding
     from keras.models import Model
     from keras.layers.core import Dense, Activation, Dropout, RepeatVector, Merge, TimeDistributedDense, Flatten
-    from keras.layers.normalization import BatchNormalization
-    from keras.layers.convolutional import Convolution1D
-    from keras.layers.recurrent import SimpleRNN, LSTM, GRU
-    from keras.layers.pooling import MaxPooling1D
+    from keras.layers.recurrent import GRU
 
+    #Input
     x_input = Input(shape=(window, ), name='x_input', dtype='int32')
 
-    char_emb = Embedding(4, vec_size, input_length=window, mask_zero=False)
+    #Embeddings
+    char_emb = Embedding(4, vec_size, input_length=window, mask_zero=True)
     emb_out = char_emb(x_input)
 
-    simple_attn = SuperSimpleAttn()
+    #Attention
+    simple_attn = Attention()
 
-    emb_attn = simple_attn(emb_out)
-
-    cl = Convolution1D(64, 3, border_mode='same', input_shape=(window, vec_len))
-    mp_1 = MaxPooling1D(pool_length=window)
-
-    cl_out = cl(emb_attn)
-    mp_1_out = mp_1(cl_out)
-
-    flattener = Flatten()
-    f_out = flattener(mp_1_out)
-
-    l_dense = Dense(1, activation='sigmoid')
-    d_out = l_dense(f_out)
-
-    model = Model(input=[x_input], output=d_out)
-    model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
-
-    #model.fit(x,y,nb_epoch=1)
-
-
-
-    #Softmax output functions
-    t_input = T.imatrix()
-    testf = theano.function([t_input], simple_attn.call_softmax(char_emb.call(t_input)))
-    '''
-    np.set_printoptions(precision=3)
-    for example in dev_x[:100]:
-        print 'Example', example
-        print 'Attention'
-        print testf(np.array([example],dtype=np.int32))[0]
-        print 
-        print
-    '''
-    #import pdb;pdb.set_trace()
-
-####Test with encoding vec
-
-    x_input = Input(shape=(window, ), name='x_input', dtype='int32')
-
-    char_emb = Embedding(4, vec_size, input_length=window, mask_zero=False)
-    emb_out = char_emb(x_input)
-
-
-    simple_attn = SuperSimpleAttnWithEncoding()
-
-    #import pdb;pdb.set_trace()
-
+    #Let's make an encoding
     rnn = GRU(vec_size)
     encoding = rnn(emb_out)
 
+    #Attention takes as its input the input sequence and an encoding of it
     emb_attn = simple_attn([emb_out, encoding])
 
-    cl = Convolution1D(64, 3, border_mode='same', input_shape=(window, vec_len))
-    mp_1 = MaxPooling1D(pool_length=window)
-
-    cl_out = cl(emb_attn)
-    mp_1_out = mp_1(cl_out)
-
-    flattener = Flatten()
-    f_out = flattener(mp_1_out)
-
+    #Output dense
     l_dense = Dense(1, activation='sigmoid')
-    d_out = l_dense(f_out)
-
+    d_out = l_dense(emb_attn)
     model = Model(input=[x_input], output=d_out)
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
 
-    model.fit(x,y,nb_epoch=1)
+    model.fit(x,y, nb_epoch=2)
 
-    #Softmax output functions
+
     t_input = T.imatrix()
-    testf = theano.function([t_input], simple_attn.call_softmax([char_emb.call(t_input), rnn.call(char_emb.call(t_input))]))
+    testf = theano.function([t_input], simple_attn.call_softmax( [char_emb.call(t_input), rnn.call(char_emb.call(t_input)) ],  [char_emb.compute_mask(t_input)] ) )
 
-    '''
     np.set_printoptions(precision=3)
-    
-    for example in dev_x[:100]:
-        print 'Example', example
-        print 'Attention'
-        print testf(np.array([example],dtype=np.int32))[0]
-        print 
-        print
-    '''
+    print()
+    print('Testing Attention')
+    print()
+    for example in dev_x[:5]:
+        print('Example', example)
+        print ('Attention')
+        print (testf(np.array([example],dtype=np.int32)), np.sum(testf(np.array([example],dtype=np.int32)), axis=1) )
+        print ()
+        print ()
 
+    from keras.models import model_from_json
+    print ('Testing JSON load & save')
+    json_mdl = model.to_json()
+    print (json_mdl)
+    model_clone = model_from_json(json_mdl, custom_objects={"Attention": Attention})
+    model_clone.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+    model_clone.fit(x, y, nb_epoch=2)
 
-#main()
+if __name__ == "__main__": main()
