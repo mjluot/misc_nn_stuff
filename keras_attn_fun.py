@@ -35,12 +35,12 @@ class Attention(Layer):
         whhn_r = T.extra_ops.repeat(whhn, full_input.shape[1], axis=0).reshape(full_input.shape)
 
         M = T.tanh(T.dot(full_input, self.W_y) + whhn_r)
-        a_dot = T.dot(M, self.w_a)
-        mask = mask[0]
+        a_dot = T.nnet.nnet.sigmoid((T.dot(M, self.w_a)))
 
         if mask is None:
             a = T.nnet.softmax(a_dot)
         else:
+            mask = mask[0]
             #This is softmax with a mask, maybe usable somewhere else as well?
             softmax_sum_with_mask = T.sum(T.exp(a_dot) * mask, axis=1)
             repeated_sum = T.extra_ops.repeat(softmax_sum_with_mask, a_dot.shape[1]).reshape(a_dot.shape)
