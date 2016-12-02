@@ -31,10 +31,10 @@ class Attention(Layer):
         full_input = x[0]
         encoding = x[1]
 
-        whhn = T.dot(encoding, self.W_h)
+        whhn = T.dot(encoding, self.W_h.T) #Maybe T here as well?
         whhn_r = T.extra_ops.repeat(whhn, full_input.shape[1], axis=0).reshape(full_input.shape)
 
-        M = T.tanh(T.dot(full_input, self.W_y) + whhn_r)
+        M = T.tanh(T.dot(full_input, self.W_y.T) + whhn_r)
         a_dot = T.nnet.nnet.sigmoid((T.dot(M, self.w_a)))
 
         if mask is None:
@@ -47,6 +47,7 @@ class Attention(Layer):
             a = ((T.exp(a_dot)/repeated_sum)) * mask
 
         ar = T.extra_ops.repeat(a, full_input.shape[-1], axis=1).reshape(full_input.shape)
+
         if self.return_sequences:
             return full_input * ar
         else:
@@ -57,10 +58,10 @@ class Attention(Layer):
         full_input = x[0]
         encoding = x[1]
 
-        whhn = T.dot(encoding, self.W_h)
+        whhn = T.dot(encoding, self.W_h.T)
         whhn_r = T.extra_ops.repeat(whhn, full_input.shape[1], axis=0).reshape(full_input.shape)
 
-        M = T.tanh(T.dot(full_input, self.W_y) + whhn_r)
+        M = T.tanh(T.dot(full_input, self.W_y.T) + whhn_r)
         a_dot = T.dot(M, self.w_a)
         mask = mask[0]
 
