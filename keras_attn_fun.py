@@ -42,6 +42,8 @@ class Attention(Layer):
         else:
             mask = mask[0]
             #This is softmax with a mask, maybe usable somewhere else as well?
+            if mask == None:
+                mask = 1
             softmax_sum_with_mask = T.sum(T.exp(a_dot) * mask, axis=1)
             repeated_sum = T.extra_ops.repeat(softmax_sum_with_mask, a_dot.shape[1]).reshape(a_dot.shape)
             a = ((T.exp(a_dot)/repeated_sum)) * mask
